@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recipe</title>
+</head>
+<body>
+
+<div>
+    <h2>Recipe</h2>
+    <form id="recipeForm">
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" required maxlength="125"><br><br>
+
+        <label for="description">Description:</label><br>
+        <input id="description" name="description" required maxlength="255"><br><br>
+
+        <label for="steps">Steps:</label><br>
+        <ol id="steps">
+            <li><input type="text" name="step1" required></li>
+        </ol>
+        <button type="button" id="addStep">Add Step</button><br><br>
+
+        <label for="image">Image URL:</label>
+        <input type="text" id="image" name="image"><br><br>
+
+        <div id="imagePreview"></div><br><br>
+
+        <input type="submit" value="Save Recipe">
+    </form>
+</div>
+
+<div id="recipeList">
+    <h4>Your Recipe:</h4>
+    <ul id="recipes"></ul>
+</div>
+
+<script>
+    // Function to update image preview
+    function updateImagePreview() {
+        var imageURL = document.getElementById("image").value;
+        var imagePreview = document.getElementById("imagePreview");
+        if (imageURL.trim() !== "") {
+            imagePreview.innerHTML = '<img src="' + imageURL + '" alt="Recipe Image">';
+        } else {
+            imagePreview.innerHTML = '';
+        }
+    }
+
+    // Event listener for image URL input change
+    document.getElementById("image").addEventListener("input", updateImagePreview);
+
+    // Function to render the list of saved recipes
+    function renderRecipeList() {
+        var recipesList = document.getElementById("recipes");
+        recipesList.innerHTML = "";
+
+        if (savedRecipe.size > 0) {
+            var li = document.createElement("li");
+            li.textContent = savedRecipe.get("title");
+            li.addEventListener("click", function() {
+                loadRecipe(savedRecipe);
+            });
+            recipesList.appendChild(li);
+        }
+    }
+
+    // Function to load a recipe when clicked on the recipe list
+    function loadRecipe(recipe) {
+        document.getElementById("title").value = recipe.get("title");
+        document.getElementById("description").value = recipe.get("description");
+        document.getElementById("image").value = recipe.get("image");
+        updateImagePreview();
+        document.getElementById("steps").innerHTML = "";
+
+        recipe.get("steps").forEach(function(step, index) {
+            var stepNum = index + 1;
+            var newStepInput = document.createElement("li");
+            newStepInput.innerHTML = '<input type="text" name="step' + stepNum + '" value="' + step + '" required>';
+            // Add delete button for all steps except the first one: Min Steps: 1
+            if (index !== 0) { 
+                newStepInput.innerHTML += '<button type="button" class="deleteStep">Delete</button>';
+            }
+            document.getElementById("steps").appendChild(newStepInput);
+        });
+
+        attachDeleteStepActions(); 
+    }
+
+    // Function to attach delete button actions
+    function attachDeleteStepActions() {
+        var deleteButtons = document.querySelectorAll("#steps .deleteStep");
+        deleteButtons.forEach(function(button) {
+            button.addEventListener("click", function() {
+                button.parentNode.remove();
+            });
+        });
+    }
+
+    // Event listener for adding a new step
+    document.getElementById("addStep").addEventListener("click", function() {
+        var stepNum = document.getElementById("steps").getElementsByTagName("li").length + 1;
+        var newStepInput = document.createElement("li");
+        newStepInput.innerHTML = '<input type="text" name="step' + stepNum + '" required>';
+        document.getElementById("steps").appendChild(newStepInput);
+        newStepInput.innerHTML += '<button type="button" class="deleteStep">Delete</button>';
+        attachDeleteStepActions(); 
+    });
+
+    var savedRecipe = new Map(JSON.parse(localStorage.getItem("recipe"))) || new Map();
+    
+    // Event listener for saving a recipe
+    document.getElementById("recipeForm").addEventListener("submit", function(event) {
+        event.preventDefault(); 
+
+        var title = document.getElementById("title").value;
+        var description = document.getElementById("description").value;
+        var image = document.getElementById("image").value;
+        var steps = Array.from(document.querySelectorAll("#steps input[type='text']")).map(input => input.value);
+
+        var recipe = new Map();
+        recipe.set("title", title);
+        recipe.set("description", description);
+        recipe.set("image", image);
+        recipe.set("steps", steps);
+
+        savedRecipe = recipe;
+        localStorage.setItem("recipe", JSON.stringify(Array.from(savedRecipe.entries())));
+
+        document.getElementById("recipeForm").reset();
+        document.getElementById("imagePreview").innerHTML = '';
+        document.getElementById("steps").innerHTML = '<li><input type="text" name="step1" required></li>';
+
+        renderRecipeList();
+
+        alert("Recipe saved successfully!");
+    });
+
+    // Clear localStorage on page refresh
+    window.addEventListener("beforeunload", function() {
+        localStorage.removeItem("recipe");
+    });
+
+    renderRecipeList();
+</script>
+
+</body>
+</html>
